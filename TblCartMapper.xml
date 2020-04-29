@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="jp.co.internous.hope.model.mapper.TblCartMapper">
+
+	<select id="findByUserId" resultType="jp.co.internous.hope.model.domain.dto.CartDto">
+	SELECT
+			cart.id AS id,
+			product.image_full_path AS image_full_path,
+			product.product_name AS product_name,
+			product.price AS price,
+			cart.product_count AS product_count,
+			(cart.product_count * product.price) AS subtotal,
+			cart.created_at AS created_at,
+			cart.updated_at AS updated_at
+	FROM
+			tbl_cart AS cart
+	JOIN
+			mst_product AS product
+	ON
+			cart.product_id = product.id
+	WHERE
+			user_id = #{userId}
+	ORDER BY updated_at DESC, created_at DESC;
+	</select>
+
+</mapper>

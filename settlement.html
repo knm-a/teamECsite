@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8"/>
+<title>宛先選択・決済 | SUMOKAN</title>
+<link rel="stylesheet" th:href="@{/css/settlement.css}" href="/css/settlement.css" />
+<link rel="stylesheet" th:href="@{/css/common.css}" href="/css/common.css" />
+</head>
+<body>
+
+	<header th:insert="fragments/page_header.html :: pageHeader"></header>
+	
+	<div class="container">
+	
+		<!-- 宛先情報がある場合 -->
+        <h2 th:if="${destinations != null && destinations.size() > 0}">宛先を選択し、決済を完了します。</h2>
+        <p th:if="${destinations != null && destinations.size() > 0}">宛先の新規登録、削除も可能です。</p>
+		<!-- 宛先情報がない場合  -->
+        <p th:if="${destinations == null || destinations.size() == 0}">宛先情報がありません。新規登録してください。</p>
+	        
+        <table class="destination" border="1" th:if="${destinations != null && destinations.size() > 0}">
+        	<tr>
+                <th>選択</th><th>宛先氏名</th><th>住所</th><th>電話番号</th>
+            </tr>
+            <tr th:each="destination, st: ${destinations}">
+                <td><input type="radio" class="radio" name="id" th:checked="${st.index==0}" th:value="${destination.id}"/></td>
+                <td><span th:text="${destination.familyName}"></span><span> </span><span th:text="${destination.firstName}"></span></td>
+                <td th:text="${destination.address}"></td>
+                <td th:text="${destination.telNumber}"></td>
+            </tr>
+        </table>
+        
+        <div class="btn">
+        
+	        <button type="button" id="deleteBtn" th:if="${destinations != null && destinations.size() > 0}">削除</button>    
+	    <!-- 新規宛先ボタンは宛先情報の有無に関係なく表示 -->
+        <form action="/hope/destination/">
+	        <button type="submit" class="newBtn">新規宛先</button>
+        </form>
+	        <button type="button" id="settlementBtn" th:if="${destinations != null && destinations.size() > 0}">決済</button>
+	        
+        </div>
+        
+        <!-- cssのfloat:right解除用 -->
+        <div class="clear"></div>
+        
+	</div>
+	
+<script>
+$(() => {
+		//削除ボタン押下時deleteDestination(チェックボックスで選択された宛先情報を削除)
+		$('#deleteBtn').on('click', () => {
+			let checked = $('.radio:checked');
+			let destinationId = $(checked).val();
+			deleteDestination(destinationId, checked);
+		});
+		//決済ボタン押下時
+		$('#settlementBtn').on('click', () => {
+			let checked = $('.radio:checked');
+			let destinationId = $(checked).val();
+			settlement(destinationId);
+		});
+});
+
+//チェックボックスで選択された宛先情報を削除
+function deleteDestination(destinationId, checked){
+	$.ajax({
+		type: 'POST',
+		url: '/hope/destination/delete',
+		data: JSON.stringify({'destinationId': destinationId}),
+		datatype: 'json',
+		contentType: 'application/json',
+	})
+	.then((result) => {
+		$(checked).parent().parent().remove();
+		let radioList = $('.radio');
+		if (radioList.length == 0){
+			location.replace('/hope/settlement/');
+		}
+		//1つ目の要素を選択状態にする
+		radioList[0].checked = true;
+	}, () => {
+		alert('Error: ajax connection failed.');
+	});
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8" />
+<title>カート | SUMOKAN</title>
+<link rel="stylesheet" th:href="@{/css/cart.css}" href="/css/cart.css" />
+<link rel="stylesheet" th:href="@{/css/common.css}" href="/css/common.css" />
+</head>
+<body>
+
+	<header th:insert="fragments/page_header.html :: pageHeader"></header>
+	
+	<div class="container">
+        <h2>カート</h2>
+        
+        <!-- カートの中身が0の時のカート画面 -->
+        <div class="noData" th:if="${carts == null || carts.size() == 0}">
+        	<p>カート情報はありません。</p>
+        </div>
+        
+        <!-- カートの中身があるときのカート画面 -->
+        <table class="cart" border="1" th:if="${carts != null && carts.size() > 0}">
+            <tr>
+                <th>選択</th><th>画像</th><th>商品名</th><th>価格(円)</th><th>個数</th><th>小計(円)</th>
+            </tr>
+            <tr th:each="cart: ${carts}">
+                <td class="check" width="7%"><input type="checkbox" name="id" class="checkList" th:value="${cart.id}" /></td>
+                <!-- 取得した画像データをimgタグのsrc属性に設定 -->
+                <td><img class="itemimg" th:src="@{{imagePath} (imagePath=${cart.imageFullPath})}" /></td>
+                <td class="name" th:text="${cart.productName}"></td>
+                <td class="price" th:text="${cart.price}"></td>
+                <td class="productCount" th:text="${cart.productCount}"></td>
+                <td class="subtotal" th:text="${cart.subtotal}"></td>
+            </tr>
+            <tr>
+				<td class="totalArea" style="border-left-style:hidden;"></td>
+				<td class="totalArea"></td>
+				<td class="totalArea">合計(円)</td>
+				<td class="totalArea"></td>
+				<td class="totalArea" id="totalCount"></td>
+				<td class="totalArea" id="totalPrice" style="border-right-style:hidden;"></td>
+　			</tr>
+        </table>
+        
+        <div class="btn" th:if="${carts == null || carts.size() > 0}">
+        
+        <form action="/hope/settlement/">
+	        <button type="submit" id="settlementBtn">購入</button>
+	    </form>
+	    <button type="button" id="deleteBtn" disabled>削除</button>
+	    
+        </div>
+        
+        <!-- cssのfloat:right解除用 -->
+        <div class="clear"></div>
+    </div>
+    
+<script th:inline="javascript">
+/*<![CDATA[*/
+
+$(() => {
+		//購入個数と金額の合計を算出し、合計欄に設定する
+		calcTotalArea();
+		
+		//削除ボタン押下時
+		$('#deleteBtn').on('click', () => {
+			let checkedList = $('.checkList:checked');
+			let checkedIdList = [];
+			for (checked of checkedList) {
+				checkedIdList.push($(checked).val());
+			}
+			deleteCart(checkedList, checkedIdList);
+		});
+		
+		$('.checkList').on('change', changeDisable);
+		
+		//決済ボタン押下時ログイン判定
+		$('#settlementBtn').on('click', function() {
+			let userId = /*[[${loginSession.getUserId()}]]*/;
+			if (userId == 0 && isEmpty($('#hiddenUserName').val())){
+				alert("ログインしてください。");
+				return false;
+			}
+		});
+});
+
+//削除ボタン押下時チェックボックスで選択されたカート情報を削除する
+function deleteCart(checkedList, checkedIdList) {
+	$.ajax({
+		type: 'POST',
+		url: '/hope/cart/delete',
+		data: JSON.stringify({'checkedIdList': checkedIdList}),
+		datatype: 'json',
+		contentType: 'application/json',
+	})
+	.then((result) => {
+					for (checked of checkedList) {
+						$(checked).parent().parent().remove();
+					}
+					
+					let checkList = $('.checkList');
+					if (checkList.length == 0) {
+						location.replace('/hope/cart/');
+					}
+					//購入個数と金額の合計を算出し、合計欄に設定する
+					calcTotalArea();
+					//削除ボタンを非活性にする
+					changeDisable();
+	}, () => {
+			alert('Error: ajax connection failed.');
+	});
+}
+
+//削除ボタン活性(チェックボックスにチェックがあるとき),非活性(チェックボックスにチェックがないとき)
+let changeDisable = (event) => {
+	let checkList = $('.checkList');
+	let disabled = true;
+	for (let check of checkList) {
+		if($(check).prop('checked')){
+			disabled = false;
+			break;
+		}
+	}
+	$("#deleteBtn").prop("disabled", disabled);
+}
+
+//購入個数と金額の合計を算出し、合計欄に設定する
+function calcTotalArea() {
+	let subtotalList = $('.subtotal');
+	let countList = $('.productCount');
+	let totalPrice = 0;
+	let totalCount = 0;
+	
+	$(subtotalList).each((i, subtotal) =>{
+		totalPrice += parseInt($(subtotal).text());
+		totalCount += parseInt($(countList[i]).text());
+	});
+	
+	//合計金額と個数を表示
+	$('#totalPrice').text(totalPrice);
+	$('#totalCount').text(totalCount);
+}
+/*]]>*/
+</script>
+</body>
+</html>
